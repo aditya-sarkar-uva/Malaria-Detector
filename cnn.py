@@ -14,8 +14,8 @@ original_parasitized = 'C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Ma
 original_uninfected = 'C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\original_cell_images\\Uninfected\\'
 resized_parasitized = 'C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\resized_cell_images\\Parasitized\\'
 resized_uninfected = 'C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\resized_cell_images\\Uninfected\\'
-batch_size, num_classes, epochs = 128, 2, 12
-channels, img_rows, img_cols = 3, 64, 64
+batch_size, num_classes, epochs = 128, 2, 1
+channels, img_rows, img_cols = 3, 32, 32
 
 def resize_images():
 	image_count = 0
@@ -26,7 +26,9 @@ def resize_images():
 			save_img(resized_parasitized + filename, img_array)
 			image_count += 1
 			if image_count % 1000 == 0:
-				print("Resizing parasitized image " + str(image_count))
+				print("Resizing parasitized cell image " + str(image_count))
+
+	print("Finished resizing parasitized cell images")
 
 	image_count = 0
 	for filename in os.listdir(original_uninfected):
@@ -38,6 +40,8 @@ def resize_images():
 			if image_count % 1000 == 0:
 				print("Resizing uninfected image " + str(image_count))
 
+	print("Finished resizing uninfected cell images")
+	
 def create_datasets():
 	data = np.ndarray(shape=(27558, img_rows, img_cols, channels), dtype=np.float32)
 	image_count = 0
@@ -109,7 +113,7 @@ def train_model(input_shape):
 	# adds the output layer with number of classes as 2 because there are 2 possible outcomes
 	model.add(Dense(num_classes, activation='softmax'))
 	
-	model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(), metrics=['accuracy'])
+	model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adadelta(), metrics=['accuracy'])
 
 	print("Created CNN model")
 
@@ -119,7 +123,7 @@ def train_model(input_shape):
 
 	return model
 	
-#resize_images()
+resize_images()
 data_train, data_test, labels_train, labels_test, input_shape = create_datasets()
 model = train_model(input_shape)
 

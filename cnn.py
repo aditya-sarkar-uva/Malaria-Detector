@@ -9,6 +9,7 @@ from keras.layers import Conv2D, MaxPooling2D
 import numpy as np
 from sklearn.model_selection import train_test_split
 import os
+import matplotlib.pyplot as plt
 
 original_parasitized = 'C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\original_cell_images\\Parasitized\\'
 original_uninfected = 'C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\original_cell_images\\Uninfected\\'
@@ -16,6 +17,13 @@ resized_parasitized = 'C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Mal
 resized_uninfected = 'C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\resized_cell_images\\Uninfected\\'
 batch_size, num_classes, epochs = 128, 2, 1
 channels, img_rows, img_cols = 3, 32, 32
+
+class LossHistory(keras.callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.losses = []
+
+    def on_batch_end(self, batch, logs={}):
+        self.losses.append(logs.get('loss'))
 
 def resize_images():
 	image_count = 0
@@ -41,7 +49,7 @@ def resize_images():
 				print("Resizing uninfected image " + str(image_count))
 
 	print("Finished resizing uninfected cell images")
-	
+
 def create_datasets():
 	data = np.ndarray(shape=(27558, img_rows, img_cols, channels), dtype=np.float32)
 	image_count = 0
@@ -98,36 +106,36 @@ def create_datasets():
 
 def train_model(input_shape):
 	model = Sequential()
-	#first argument is number of convolution filters, next is row and column size of kernels
 	model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=input_shape))
 	model.add(Conv2D(64, (3, 3), activation='relu'))
-	# reduces number of parameters by sliding a 2x2 pooling filter across previous layer and taking the max of the 4 values in the filter
 	model.add(MaxPooling2D(pool_size=(2, 2)))
-	# prevents overfitting
 	model.add(Dropout(0.25))
-	# weights from the convolution layers are flattened into 1 dimension before passing to the fully connected dense layer
 	model.add(Flatten())
-	# adds a fully connected layer
 	model.add(Dense(128, activation='relu'))
 	model.add(Dropout(0.5))
-	# adds the output layer with number of classes as 2 because there are 2 possible outcomes
 	model.add(Dense(num_classes, activation='softmax'))
 	
 	model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adadelta(), metrics=['accuracy'])
 
 	print("Created CNN model")
 
-	model.fit(data_train, labels_train, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(data_test, labels_test))
+	history = LossHistory()
+	model.fit(data_train, labels_train, batch_size=batch_size, epochs=epochs, verbose=1, callbacks = [history])
 
 	print("Finished training CNN model")
 
-	return model
+	return model, history
 	
-resize_images()
+#resize_images()
 data_train, data_test, labels_train, labels_test, input_shape = create_datasets()
-model = train_model(input_shape)
-
+model, history = train_model(input_shape)
 score = model.evaluate(data_test, labels_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
+
+plt.plot(history.losses)
+plt.title('Loss during Training')
+plt.ylabel('Loss')
+plt.xlabel('Batch')
+plt.show()
 

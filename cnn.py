@@ -39,7 +39,6 @@ def resize_images():
 
 	print("Finished resizing parasitized cell images")
 
-	image_count = 0
 	for filename in os.listdir(original_uninfected):
 		if filename != "Thumbs.db":
 			img = load_img(original_uninfected + filename, target_size=(img_rows, img_cols))
@@ -149,19 +148,21 @@ def create_datasets(test_proportion):
 def train_model(input_shape):
 	model = Sequential()
 	model.add(Conv2D(32, kernel_size = (3, 3), activation = "relu", input_shape = input_shape))
-	model.add(Conv2D(32, kernel_size = (3, 3), activation = "relu", kernel_regularizer = Regularizers.l2(0.01)))
+	model.add(BatchNormalization())
+	model.add(MaxPooling2D(pool_size = (3, 3)))
+	model.add(Conv2D(10, kernel_size = (3, 3), activation = "relu"))
+	model.add(BatchNormalization())
 	model.add(MaxPooling2D(pool_size = (2, 2)))
+	model.add(Conv2D(4, kernel_size = (2, 2), activation = "relu"))
 	model.add(BatchNormalization())
+	model.add(MaxPooling2D(pool_size = (2, 2)))
 	model.add(Flatten())
-	model.add(Dense(128, activation = "relu"))
-	model.add(BatchNormalization())
+	model.add(Dense(32, activation = "relu"))
 	model.add(Dense(num_classes, activation = "softmax"))
-	
-
+	model.compile(loss = keras.losses.categorical_crossentropy, optimizer = keras.optimizers.Adadelta(), metrics = ["accuracy"])
 	print("Created CNN model")
 
 	history = model.fit(data_train, labels_train, batch_size = batch_size, epochs = epochs, verbose = 1)
-	
 	print("Finished training CNN model")
 
 	return model, history
@@ -169,8 +170,7 @@ def train_model(input_shape):
 def check(folder, image_name, model):
 	temp_data = np.ndarray(shape = (1, img_rows, img_cols, channels), dtype = np.float32)
 	img, img_array = None, None
-	if image_name in os.listdir(resized_images + folder):	model.compile(loss = keras.losses.categorical_crossentropy, optimizer = keras.optimizers.Adadelta(), metrics = ["accuracy"])
-
+	if image_name in os.listdir(resized_images + folder):
 		print(resized_images + folder + image_name)
 		img = load_img(resized_images + folder + image_name)
 		img_array = img_to_array(img) # shape is (64, 64, 3)

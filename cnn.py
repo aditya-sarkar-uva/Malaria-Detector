@@ -7,6 +7,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, BatchNormalization
 from keras.layers import Conv2D, MaxPooling2D
 from keras.models import load_model
+import keras.regularizers as Regularizers
 import numpy as np
 from sklearn.model_selection import train_test_split
 import os
@@ -19,7 +20,7 @@ resized_uninfected = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Mala
 original_images = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\original_cell_images\\"
 resized_images = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\resized_cell_images\\"
 
-batch_size, num_classes, epochs = 128, 2, 15
+batch_size, num_classes, epochs = 128, 2, 10
 channels, img_rows, img_cols = 3, 32, 32
 num_parasitized_images, num_uninfected_images = 13779, 13779
 
@@ -109,10 +110,13 @@ def create_datasets(test_proportion):
 
 	input_shape = (img_rows, img_cols, 3)
 
+	num_parasitized_training, num_uninfected_training, num_parasitized_test, num_uninfected_test = 0, 0, 0, 0
+
 	load_sets = input("Load shuffled training and test sets?\n")
 	if load_sets in ["Yes", "yes"]:
 		data_train, data_test, labels_train, labels_test = np.load("data_train.npy"), np.load("data_test.npy"), np.load("labels_train.npy"), np.load("labels_test.npy")
 		print("Loaded shuffled training and test sets")
+
 	else:
 		data_train, data_test, labels_train, labels_test = train_test_split(data, labels, test_size = test_proportion)
 		
@@ -126,6 +130,21 @@ def create_datasets(test_proportion):
 			np.save(file = "labels_train.npy", arr = labels_train)
 			np.save(file = "labels_test.npy", arr = labels_test)
 			print("Split and normalized shuffled data saved in data_train.npy, data_test.npy, labels_train.npy, and labels_test.npy")
+
+	for label in labels_train:
+		if label[0] == np.float32(0):
+			num_parasitized_training += 1
+		else:
+			num_uninfected_training += 1
+
+	for label in labels_test:
+		if label[0] == np.float32(0):
+			num_parasitized_test += 1
+		else:
+			num_uninfected_test += 1
+
+	print("Training set: " + str(num_parasitized_training / len(labels_train) * 100) + " percent parasitized, " + str(num_uninfected_training / len(labels_train) * 100) + " percent uninfected")
+	print("Test set: " + str(num_parasitized_test / len(labels_test) * 100) + " percent parasitized, " + str(num_uninfected_test / len(labels_test) * 100) + " percent uninfected")
 
 def train_model(input_shape):
 	model = Sequential()

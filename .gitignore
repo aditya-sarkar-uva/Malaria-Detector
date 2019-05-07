@@ -1,3 +1,10 @@
 __pycache__/
 original_cell_images/
 resized_cell_images/
+accuracy.png
+data.npy
+data_test.npy
+data_train.npy
+labels.npy
+labels_test.npy
+labels_train.npy

@@ -12,6 +12,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import os
 import matplotlib.pyplot as plt
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 original_parasitized = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\original_cell_images\\Parasitized\\"
 original_uninfected = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\original_cell_images\\Uninfected\\"
@@ -21,7 +22,7 @@ original_images = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria
 resized_images = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\resized_cell_images\\"
 
 batch_size, num_classes, epochs = 128, 2, 10
-channels, img_rows, img_cols = 3, 32, 32
+channels, img_rows, img_cols = 3, 38, 38
 num_parasitized_images, num_uninfected_images = 13779, 13779
 
 global data, labels, data_train, data_test, labels_train, labels_test, input_shape
@@ -147,17 +148,28 @@ def create_datasets(test_proportion):
 
 def train_model(input_shape):
 	model = Sequential()
-	model.add(Conv2D(32, kernel_size = (3, 3), activation = "relu", input_shape = input_shape))
-	model.add(BatchNormalization())
-	model.add(MaxPooling2D(pool_size = (3, 3)))
-	model.add(Conv2D(10, kernel_size = (3, 3), activation = "relu"))
-	model.add(BatchNormalization())
+	model.add(Conv2D(38, kernel_size = (3, 3), activation = "relu", input_shape = input_shape))
 	model.add(MaxPooling2D(pool_size = (2, 2)))
-	model.add(Conv2D(4, kernel_size = (2, 2), activation = "relu"))
+	model.add(Dropout(0.1))
 	model.add(BatchNormalization())
+
+	model.add(Conv2D(18, kernel_size = (3, 3), activation = "relu"))
+	model.add(BatchNormalization())
+	
+	model.add(Conv2D(16, kernel_size = (3, 3), activation = "relu"))
 	model.add(MaxPooling2D(pool_size = (2, 2)))
+	model.add(BatchNormalization())
+	
+	model.add(Conv2D(7, kernel_size = (3, 3), activation = "relu"))
+	model.add(BatchNormalization())
+	
+	model.add(Conv2D(5, kernel_size = (3, 3), activation = "relu"))
+	model.add(MaxPooling2D(pool_size = (2, 2)))
+	model.add(BatchNormalization())
+	
 	model.add(Flatten())
-	model.add(Dense(32, activation = "relu"))
+	model.add(Dense(128, activation = "relu"))
+	model.add(Dropout(0.4))
 	model.add(Dense(num_classes, activation = "softmax"))
 	model.compile(loss = keras.losses.categorical_crossentropy, optimizer = keras.optimizers.Adadelta(), metrics = ["accuracy"])
 	print("Created CNN model")

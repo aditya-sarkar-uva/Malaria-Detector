@@ -8,3 +8,5 @@ data_train.npy
 labels.npy
 labels_test.npy
 labels_train.npy
+old32/
+old38

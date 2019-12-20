@@ -1,0 +1,2 @@
+Percent	Epochs	LastTrain	Test	Parasitized	Uninfected
+30		20		0.9542		0.9340	0.9268		0.9808

@@ -21,9 +21,10 @@ resized_uninfected = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Mala
 original_images = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\original_cell_images\\"
 resized_images = "C:\\Users\\reach\\Documents\\Stuff\\Machine Learning\\Malaria-Detector\\resized_cell_images\\"
 
-batch_size, num_classes, epochs = 128, 2, 10
+batch_size, num_classes, epochs = 128, 2, 20
 channels, img_rows, img_cols = 3, 38, 38
 num_parasitized_images, num_uninfected_images = 13779, 13779
+global num_parasitized_training, num_uninfected_training, num_parasitized_test, num_uninfected_test
 
 global data, labels, data_train, data_test, labels_train, labels_test, input_shape
 
@@ -66,7 +67,7 @@ def get_data():
 		image_count = 0
 		for filename in os.listdir(resized_parasitized):
 			img = load_img(resized_parasitized + filename)
-			img_array = img_to_array(img) # shape is (64, 64, 3)
+			img_array = img_to_array(img)
 			img_array.reshape((img_rows, img_cols, channels))
 			data[image_count] = img_array
 			image_count += 1
@@ -77,7 +78,7 @@ def get_data():
 
 		for filename in os.listdir(resized_uninfected):
 			img = load_img(resized_uninfected + filename)
-			img_array = img_to_array(img) # shape is (64, 64, 3)
+			img_array = img_to_array(img)
 			img_array.reshape((img_rows, img_cols, channels))
 			data[image_count] = img_array
 			image_count += 1
@@ -107,10 +108,9 @@ def get_data():
 
 def create_datasets(test_proportion):
 	global data, labels, data_train, data_test, labels_train, labels_test, input_shape
+	global num_parasitized_training, num_uninfected_training, num_parasitized_test, num_uninfected_test
 
 	input_shape = (img_rows, img_cols, 3)
-
-	num_parasitized_training, num_uninfected_training, num_parasitized_test, num_uninfected_test = 0, 0, 0, 0
 
 	load_sets = input("Load shuffled training and test sets?\n")
 	if load_sets in ["Yes", "yes"]:
@@ -130,6 +130,8 @@ def create_datasets(test_proportion):
 			np.save(file = "labels_train.npy", arr = labels_train)
 			np.save(file = "labels_test.npy", arr = labels_test)
 			print("Split and normalized shuffled data saved in data_train.npy, data_test.npy, labels_train.npy, and labels_test.npy")
+
+	num_parasitized_training, num_uninfected_training, num_parasitized_test, num_uninfected_test = 0, 0, 0, 0
 
 	for label in labels_train:
 		if label[0] == np.float32(0):
@@ -179,19 +181,6 @@ def train_model(input_shape):
 
 	return model, history
 	
-def check(folder, image_name, model):
-	temp_data = np.ndarray(shape = (1, img_rows, img_cols, channels), dtype = np.float32)
-	img, img_array = None, None
-	if image_name in os.listdir(resized_images + folder):
-		print(resized_images + folder + image_name)
-		img = load_img(resized_images + folder + image_name)
-		img_array = img_to_array(img) # shape is (64, 64, 3)
-		img_array.reshape((img_rows, img_cols, channels))
-		temp_data[0] = img_array
-		print(model.predict(temp_data, verbose = 1))
-	else:
-		print(filename + " not found")
-
 def save_cnn(model, filename):
 	model.save(filename)
 	print("Model saved as " + filename)
@@ -203,23 +192,34 @@ def load_cnn(filename):
 
 get_data()
 
-load_name = input("Model to to load?\n") + ".h5"
+load_name = input("Model to load?\n") + ".h5"
 if load_name not in ["None.h5", "none.h5"]:
 	model = load_cnn(load_name)
-	test_proportion = float(input("Proportion of data to enter into test set?\n"))
-	if test_proportion != 0:
-		create_datasets(test_proportion = test_proportion)
-		score = model.test_on_batch(data_test, labels_test)
-		print(score)
-
-	else:
-		folder, filename = input("Parasitized or Uninfected?\n") + "\\", input("Filename?\n") + ".png"
-
-		while folder != "Done":
-			check(folder, filename, model)
-			folder = input("Parasitized or Uninfected?\n")
-			filename = input("Filename?\n")
-
+	create_datasets(test_proportion = 0.5)
+	parasitized_test_data = np.ndarray(shape=(num_parasitized_images, img_rows, img_cols, channels), dtype=np.float32)
+	uninfected_test_data = np.ndarray(shape=(num_uninfected_images, img_rows, img_cols, channels), dtype=np.float32)
+	parasitized_test_labels = labels = np.ndarray(shape = (num_parasitized_images), dtype = int)
+	uninfected_test_labels = labels = np.ndarray(shape = (num_uninfected_images), dtype = int)
+	parasitized_counter, uninfected_counter = 0, 0
+	for n in range(len(labels_test)):
+		if labels_test[n][0] == np.float32(0):
+			parasitized_test_labels[parasitized_counter] = 1
+			parasitized_test_data[parasitized_counter] = data_test[n]
+			parasitized_counter += 1
+		else:
+			uninfected_test_labels[uninfected_counter] = 0
+			uninfected_test_data[uninfected_counter] = data_test[n]
+			uninfected_counter += 1
+	parasitized_test_labels = keras.utils.to_categorical(parasitized_test_labels, num_classes)
+	uninfected_test_labels = keras.utils.to_categorical(uninfected_test_labels, num_classes)
+	print("Split test set into parasitized and uninfected image data and labels")
+	score_parasitized = model.test_on_batch(parasitized_test_data, parasitized_test_labels)
+	print("Accuracy on parasitized images: " + str(score_parasitized[1]))
+	score_uninfected = model.test_on_batch(uninfected_test_data, uninfected_test_labels)
+	print("Accuracy on uninfected images: " + str(score_uninfected[1]))
+	score = model.test_on_batch(data_test, labels_test)
+	print("Accuracy on all images: " + str(score[1]))
+	
 if input("Train new model?\n") in ["Yes", "yes"]:
 	create_datasets(float(input("Proportion of data to enter into test set?\n")))
 	model, history = train_model(input_shape)

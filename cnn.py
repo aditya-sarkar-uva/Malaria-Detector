@@ -194,7 +194,7 @@ get_data()
 
 load_name = input("Model to load?\n") + ".h5"
 if load_name not in ["None.h5", "none.h5"]:
-	model = load_cnn(load_name)
+	model = load_cnn(load_name[0:len(load_name) - 3] + "\\" + load_name)
 	create_datasets(test_proportion = 0.5)
 	parasitized_test_data = np.ndarray(shape=(num_parasitized_images, img_rows, img_cols, channels), dtype=np.float32)
 	uninfected_test_data = np.ndarray(shape=(num_uninfected_images, img_rows, img_cols, channels), dtype=np.float32)
